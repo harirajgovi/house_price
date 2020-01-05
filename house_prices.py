@@ -140,7 +140,8 @@ train_pred = regressor.predict(x_train)
 test_pred = regressor.predict(x_test)
 
 #hyper-parameter tuning using gridsearch
-params = {"reg_lambda": []}
+params = {"reg_alpha": [0.0009], "max_depth": [3], "learning_rate": [0.088], "n_estimators": [302], 
+         "gamma": [0], "min_child_weight": [0], "subsample": [0.9], "colsample_bytree": [0.6]}
 tuner = GridSearchCV(regressor, param_grid=params, scoring="neg_mean_squared_error", 
                      n_jobs=-1, cv=10)
 tuned = tuner.fit(x_train, y_train)
