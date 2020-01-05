@@ -2,14 +2,14 @@
 """
 Created on Thu Jan  2 23:57:47 2020
 
-@author: hari4
+@author: hari
 """
 
 # -*- coding: utf-8 -*-
 """
 Created on Wed Dec 25 15:06:45 2019
 
-@author: hari4
+@author: hari
 """
 print("Importing libraries and data.....")
 # importing libraries
@@ -21,7 +21,7 @@ from sklearn.preprocessing import LabelEncoder
 import statsmodels.api as sm
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
-from sklearn.model_selection import cross_validate#, GridSearchCV
+from sklearn.model_selection import cross_validate, GridSearchCV
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import math
 
@@ -129,21 +129,23 @@ x_test = df_test_scl.iloc[:, :].values
 
 # ML model
 print("\nTraining XGBR model.....")
-regressor = XGBRegressor(max_depth=3, learning_rate=0.088, n_estimators=300, min_child_weight=0, 
+regressor = XGBRegressor(max_depth=3, learning_rate=0.088, n_estimators=302, min_child_weight=0, 
                          subsample=0.9, colsample_bytree=0.6, gamma=0, reg_alpha=0.0009,
-                         objective="reg:squarederror", n_jobs=-1, random_state=0, verbosity=1, 
-                         scale_pos_weight=1)
-"""params = {"reg_alpha": [0.0009, 0.001, 0.0008]}
+                         objective="reg:squarederror", n_jobs=-1, random_state=0, verbosity=0, 
+                         scale_pos_weight=0)
+regressor.fit(x_train, y_train)
+imp_fetur = pd.Series(regressor.feature_importances_, 
+                index=df_train_scl.columns).sort_values(ascending=False)
+train_pred = regressor.predict(x_train)
+test_pred = regressor.predict(x_test)
+
+#hyper-parameter tuning using gridsearch
+params = {"reg_lambda": []}
 tuner = GridSearchCV(regressor, param_grid=params, scoring="neg_mean_squared_error", 
                      n_jobs=-1, cv=10)
 tuned = tuner.fit(x_train, y_train)
 best_params = tuned.best_params_
-best_score = tuned.best_score_"""
-regressor.fit(x_train, y_train)
-imp = pd.Series(regressor.feature_importances_, 
-                index=df_train_scl.columns).sort_values(ascending=False)
-train_pred = regressor.predict(x_train)
-test_pred = regressor.predict(x_test)
+best_score = tuned.best_score_
 
 #estimation
 estimators = {"abs_error":"neg_mean_absolute_error", 
@@ -151,6 +153,7 @@ estimators = {"abs_error":"neg_mean_absolute_error",
               "r2_score":"r2"}
 cross_val = cross_validate(regressor, x_train, y_train, 
                            scoring=estimators, cv=10, n_jobs=-1, return_train_score=True)
+print("\ncross validation scores:")
 print("\nmean_absolute_error:{}".format(round(abs(cross_val["test_abs_error"]).mean()), 3), 
       "\nmean_squared_error:{}".format(round(abs(cross_val["test_squared_error"]).mean(), 3)),
       "\nroot_mean_squared_error:{}".format(round(math.sqrt(abs(cross_val["test_squared_error"]).mean()), 3)),
@@ -159,12 +162,14 @@ mae = round(mean_absolute_error(y_train, train_pred), 3)
 mse = round(mean_squared_error(y_train, train_pred), 3)
 rmse = round(math.sqrt(mse), 3)
 r2 = round(r2_score(y_train, train_pred), 3)
+print("\ntraining data scores:")
 print("\nMAE_train:{}".format(mae),
       "\nMSE_train:{}".format(mse),
       "\nRMSE_train:{}".format(rmse),
       "\nr2_score_train:{}".format(r2))
 
+#Saving the predicted data
 y_pred_train = scl_y.inverse_transform(train_pred)
 y_pred_test = pd.DataFrame(scl_y.inverse_transform(test_pred), columns=list(target.columns))
 fin_result = pd.concat([test_id, y_pred_test], axis=1)
-#fin_result.to_csv("submission46.csv", encoding="utf-8", index=False)
+fin_result.to_csv("finalsubmission.csv", encoding="utf-8", index=False)
